@@ -42,16 +42,7 @@ class TodoListViewController: UITableViewController {
         }else {
             cell.textLabel?.text = "No Items Added"
         }
-       
-
-        //Ternary operator
-        //üst satır if else yaptığı işi yapıyor. : işaretine kadar if sonrası else bu sorguda true de silinebilir.
-        //if item.done == true {
-        //    cell.accessoryType = .checkmark
-        //}
-        //else{
-        //    cell.accessoryType = .none
-        //}
+    
         return cell
         
         
@@ -63,18 +54,16 @@ class TodoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true) //Satır seçildiğinde animasyonla seçime geçiyor.
         
-//
-//        todoItems[indexPath.row].done = !itemArry[indexPath.row].done
-//        saveItems()
-        //Üst satır bu if else görevini yerine getiriyor
-      //  if todoItems[indexPath.row].done == true {
-      //      todoItems[indexPath.row].done = false
-      //  }
-      //  else{
-      //      todoItems[indexPath.row].done = true
-      //  }
-        
-        
+        if let item = todoItems?[indexPath.row] {
+            do{
+                try realm.write {
+                    item.done = !item.done
+                }
+            }catch{
+                print("Error saving done status, \(error)")
+            }
+        }
+            tableView.reloadData()
         
     }
 
@@ -90,6 +79,7 @@ class TodoListViewController: UITableViewController {
                     try self.realm.write {
                     let newItem = Item()
                     newItem.title = textField.text!
+                    newItem.dataCreated = Date()
                     currentCategory.items.append(newItem)
                     
                         self.realm.add(newItem)
@@ -118,25 +108,26 @@ class TodoListViewController: UITableViewController {
 
     //internal ve external parametre var bu func ta = den sonrası default değer oluyor.
     func loadItems(){
-        todoItems = selectedCategory?.items.sorted(byKeyPath: "title", ascending: true)
+        todoItems = selectedCategory?.items.sorted(byKeyPath: "dataCreated", ascending: true)
         tableView.reloadData()
+    }
 }
+    extension TodoListViewController: UISearchBarDelegate{
 
-//extension TodoListViewController: UISearchBarDelegate{
-//    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
-//        let request : NSFetchRequest<Item> = Item.fetchRequest()
-//        let predicate  = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
-//        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
-//        loadItems(with: request, predicate:predicate)
-//    }
-//
-//    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
-//        if searchBar.text?.count == 0{
-//            loadItems()
-//            DispatchQueue.main.async {
-//                searchBar.resignFirstResponder()
-//            }
-//       }
-//    }
-//
-}
+        func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+            todoItems = todoItems?.filter("title CONTAINS[cd] %@", searchBar.text!).sorted(byKeyPath: "dataCreated", ascending: true)
+            
+            tableView.reloadData()
+        }
+        
+        func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+            if searchBar.text?.count == 0 {
+                loadItems()
+                DispatchQueue.main.async {
+                    searchBar.resignFirstResponder()
+                }
+            }
+        }
+        
+   }
+
